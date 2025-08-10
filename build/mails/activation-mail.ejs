@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Welcome to E-Learning</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    .container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h2 {
+      color: #333333;
+    }
+    p {
+      color: #555555;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #007BFF;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    .footer {
+      margin-top: 30px;
+      font-size: 12px;
+      color: #999999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hello, <%= user.name %>!</h2>
+    <p>Welcome to E-Learning. We're excited to have you on board.</p>
+    <p>Thank you for registering with ELearning. To activate your account, please use the following activation code: </p>
+    <h2> <%= activationCode %> </h2> 
+    <p>Please enter this code on the activation page within the next 5 minutes</p>
+    
+    <p class="footer">If you did not sign up for , please ignore this email.</p>
+  </div>
+</body>
+</html>
