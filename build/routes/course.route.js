@@ -1,0 +1,37 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const course_controller_1 = require("../controllers/course.controller");
+const auth_1 = require("../middleware/auth");
+const user_controller_1 = require("../controllers/user.controller");
+const courseRouter = express_1.default.Router();
+courseRouter.post("/create-course", user_controller_1.updateAccessToken, auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.uploadCourse);
+courseRouter.put("/edit-course/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.editCourse);
+courseRouter.get("/get-course/:id", course_controller_1.getSingleCourse);
+courseRouter.get("/get-admin-courses", auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.getAdminAllCourse);
+courseRouter.get("/get-courses", course_controller_1.getAllCourses);
+courseRouter.get("/get-course-content/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.getCourseByUser);
+courseRouter.put("/add-question", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.addQuestion);
+courseRouter.put("/add-answer", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.addAnswer);
+courseRouter.put("/add-review/:id", user_controller_1.updateAccessToken, course_controller_1.addReview);
+courseRouter.put("/add-reply", user_controller_1.updateAccessToken, auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.addReplyToReview);
+courseRouter.get("/get-courses", auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.getAllCourses);
+courseRouter.get("/get-full-course/:id", auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.getFullCourse);
+courseRouter.get("/user/courses", auth_1.isAuthenticated, course_controller_1.getUserCourses);
+courseRouter.get("/user-courses/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.checkCourseEnrollment);
+courseRouter.delete("/delete-course/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.deleteCourse);
+courseRouter.post('/add-video-review/:courseId/:contentId/:videoId', user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.addVideoReview);
+courseRouter.post('/like-video/:courseId/:contentId', user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.likeVideo);
+courseRouter.post('/dislike-video/:courseId/:contentId', user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.dislikeVideo);
+courseRouter.put('/reply-review/:courseId/:contentId/:reviewId', user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.replyToReview);
+courseRouter.put("/reply-question/:courseId/:contentId/:questionId", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.replyToQuestion);
+// Add a new question to a video
+courseRouter.post("/add-question/:courseId/:contentId", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.addVideoQuestion);
+courseRouter.get('/check-lecture-completion', auth_1.isAuthenticated, course_controller_1.checkLectureCompletion);
+courseRouter.post('/courses/:courseId/reviews', auth_1.isAuthenticated, course_controller_1.addCourseReview);
+courseRouter.put('/courses/:courseId/reviews/:reviewId/reply', auth_1.isAuthenticated, course_controller_1.replyToCourseReview);
+courseRouter.get('/courses/:courseId/reviews', course_controller_1.getCourseReviews);
+exports.default = courseRouter;

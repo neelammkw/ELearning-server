@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "module": "NodeNext",
+      "moduleResolution": "NodeNext",
+      "target": "ES2020",
+      "esModuleInterop": true,
+       "strict": false, // Temporarily disable strict mode
+    "noImplicitAny": false ,// Allow implicit 'any' (not recommended long-term)
+      "resolveJsonModule": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "outDir": "./build",
+      "rootDir": "../server"
+    }
+  }
+
+  
