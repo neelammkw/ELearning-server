@@ -22,7 +22,7 @@ exports.app.use(express_1.default.json({ limit: "50mb" }));
 exports.app.use(express_1.default.urlencoded({ extended: true }));
 exports.app.use((0, cookie_parser_1.default)());
 exports.app.use((0, cors_1.default)({
-    origin: process.env.ORIGIN || "http://localhost:3000",
+    origin: process.env.ORIGIN || "https://e-learning-nsm.netlify.app",
     credentials: true
 }));
 const limiter = (0, express_rate_limit_1.rateLimit)({
