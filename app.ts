@@ -17,7 +17,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({ 
-  origin: process.env.ORIGIN || "http://localhost:3000", 
+  origin: process.env.ORIGIN || "https://e-learning-nsm.netlify.app", 
   credentials: true 
 }));
 const limiter = rateLimit({
