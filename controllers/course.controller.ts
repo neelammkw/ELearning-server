@@ -496,15 +496,22 @@ export const getCourseByUser = CatchAsyncError(async (req: Request, res: Respons
 export const getUserCourses = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('[Backend] getUserCourses started');
+      console.log('[Backend] User ID:', req.user?._id);
+
       const user = await UserModel.findById(req.user?._id);
+      console.log('[Backend] Found user:', user ? user._id : 'null');
       
       if (!user) {
+        console.log('[Backend] User not found');
         return next(new ErrorHandler("User not found", 404));
       }
 
       const userCourses = user.courses;
+      console.log('[Backend] User courses from DB:', userCourses);
       
       if (!userCourses || userCourses.length === 0) {
+        console.log('[Backend] No courses found for user');
         return res.status(200).json({
           success: true,
           courses: []
@@ -512,25 +519,33 @@ export const getUserCourses = CatchAsyncError(
       }
 
       // Get full course details with progress information
+      const courseIds = userCourses.map((course: any) => course.courseId);
+      console.log('[Backend] Course IDs to fetch:', courseIds);
+
       const courses = await CourseModel.find({
-        _id: { $in: userCourses.map((course: any) => course.courseId) }
+        _id: { $in: courseIds }
       }).lean();
+
+      console.log('[Backend] Found courses:', courses.length);
 
       const coursesWithProgress = courses.map(course => {
         const userCourse = userCourses.find(
           (uc: any) => uc.courseId.toString() === course._id.toString()
         );
+        
         return {
           ...course,
-          // progress: userCourse || 0
         };
       });
+
+      console.log('[Backend] Final courses with progress:', coursesWithProgress);
 
       res.status(200).json({
         success: true,
         courses: coursesWithProgress
       });
     } catch (error: any) {
+      console.error('[Backend] Error in getUserCourses:', error);
       return next(new ErrorHandler(error.message, 400));
     }
   }
