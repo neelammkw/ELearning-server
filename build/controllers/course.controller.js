@@ -419,33 +419,44 @@ exports.getCourseByUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, re
 });
 exports.getUserCourses = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
-        const userCourses = req.user?.courses;
+        console.log('[Backend] getUserCourses started');
+        console.log('[Backend] User ID:', req.user?._id);
+        const user = await user_model_1.default.findById(req.user?._id);
+        console.log('[Backend] Found user:', user ? user._id : 'null');
+        if (!user) {
+            console.log('[Backend] User not found');
+            return next(new ErrorHandler_1.default("User not found", 404));
+        }
+        const userCourses = user.courses;
+        console.log('[Backend] User courses from DB:', userCourses);
         if (!userCourses || userCourses.length === 0) {
+            console.log('[Backend] No courses found for user');
             return res.status(200).json({
                 success: true,
                 courses: []
             });
         }
-        // Get full course details for each course in user's list
+        // Get full course details with progress information
+        const courseIds = userCourses.map((course) => course.courseId);
+        console.log('[Backend] Course IDs to fetch:', courseIds);
         const courses = await course_model_1.default.find({
-            _id: { $in: userCourses.map((course) => course.courseId) }
-        }).select('-courseData -questions -reviews');
-        // // Add progress information to each course
-        // const coursesWithProgress = courses.map(course => {
-        //   const userCourse = userCourses.find(
-        //     (uc: any) => uc.courseId.toString() === course._id.toString()
-        //   );
-        //   return {
-        //     ...course.toObject(),
-        //     progress: userCourse?.progress || 0
-        //   };
-        // });
+            _id: { $in: courseIds }
+        }).lean();
+        console.log('[Backend] Found courses:', courses.length);
+        const coursesWithProgress = courses.map(course => {
+            const userCourse = userCourses.find((uc) => uc.courseId.toString() === course._id.toString());
+            return {
+                ...course,
+            };
+        });
+        console.log('[Backend] Final courses with progress:', coursesWithProgress);
         res.status(200).json({
             success: true,
-            // courses: coursesWithProgress
+            courses: coursesWithProgress
         });
     }
     catch (error) {
+        console.error('[Backend] Error in getUserCourses:', error);
         return next(new ErrorHandler_1.default(error.message, 400));
     }
 });
