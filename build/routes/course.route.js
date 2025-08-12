@@ -20,7 +20,7 @@ courseRouter.put("/add-review/:id", user_controller_1.updateAccessToken, course_
 courseRouter.put("/add-reply", user_controller_1.updateAccessToken, auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.addReplyToReview);
 courseRouter.get("/get-courses", auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.getAllCourses);
 courseRouter.get("/get-full-course/:id", auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.getFullCourse);
-courseRouter.get("/user/courses", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.getUserCourses);
+courseRouter.get("/user-enrolledcourses/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.getUserCourses);
 courseRouter.get("/user-courses/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.checkCourseEnrollment);
 courseRouter.delete("/delete-course/:id", user_controller_1.updateAccessToken, auth_1.isAuthenticated, (0, auth_1.authorizationRoles)("admin"), course_controller_1.deleteCourse);
 courseRouter.post('/add-video-review/:courseId/:contentId/:videoId', user_controller_1.updateAccessToken, auth_1.isAuthenticated, course_controller_1.addVideoReview);

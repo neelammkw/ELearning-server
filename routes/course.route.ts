@@ -23,7 +23,7 @@ courseRouter.put("/add-review/:id", updateAccessToken, addReview);
 courseRouter.put("/add-reply", updateAccessToken, isAuthenticated, authorizationRoles("admin"), addReplyToReview);
 courseRouter.get("/get-courses", isAuthenticated, authorizationRoles("admin"), getAllCourses);
 courseRouter.get("/get-full-course/:id", isAuthenticated, authorizationRoles("admin"), getFullCourse);
-courseRouter.get("/user-courses", updateAccessToken, isAuthenticated, getUserCourses);
+courseRouter.get("/user-enrolledcourses/:id", updateAccessToken, isAuthenticated, getUserCourses);
 
 courseRouter.get("/user-courses/:id", updateAccessToken, isAuthenticated, checkCourseEnrollment);
 courseRouter.delete("/delete-course/:id", updateAccessToken, isAuthenticated, authorizationRoles("admin"), deleteCourse);

@@ -419,9 +419,13 @@ exports.getCourseByUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, re
 });
 exports.getUserCourses = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
-        console.log('[Backend] getUserCourses started');
-        console.log('[Backend] User ID:', req.user?._id);
-        const user = await user_model_1.default.findById(req.user?._id);
+        const userId = req.params.id; // Get userId from params
+        console.log('[Backend] getUserCourses started for user:', userId);
+        // Validate userId
+        if (!mongoose_1.default.Types.ObjectId.isValid(userId)) {
+            return next(new ErrorHandler_1.default("Invalid user ID", 400));
+        }
+        const user = await user_model_1.default.findById(userId);
         console.log('[Backend] Found user:', user ? user._id : 'null');
         if (!user) {
             console.log('[Backend] User not found');
@@ -441,12 +445,14 @@ exports.getUserCourses = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res
         console.log('[Backend] Course IDs to fetch:', courseIds);
         const courses = await course_model_1.default.find({
             _id: { $in: courseIds }
-        }).lean();
+        }).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
+            .lean();
         console.log('[Backend] Found courses:', courses.length);
         const coursesWithProgress = courses.map(course => {
             const userCourse = userCourses.find((uc) => uc.courseId.toString() === course._id.toString());
             return {
                 ...course,
+                // progress: userCourse || 0 // Include progress from user's course
             };
         });
         console.log('[Backend] Final courses with progress:', coursesWithProgress);

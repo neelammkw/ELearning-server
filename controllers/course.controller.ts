@@ -496,10 +496,15 @@ export const getCourseByUser = CatchAsyncError(async (req: Request, res: Respons
 export const getUserCourses = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log('[Backend] getUserCourses started');
-      console.log('[Backend] User ID:', req.user?._id);
+      const userId = req.params.id; // Get userId from params
+      console.log('[Backend] getUserCourses started for user:', userId);
 
-      const user = await UserModel.findById(req.user?._id);
+      // Validate userId
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return next(new ErrorHandler("Invalid user ID", 400));
+      }
+
+      const user = await UserModel.findById(userId);
       console.log('[Backend] Found user:', user ? user._id : 'null');
       
       if (!user) {
@@ -524,7 +529,8 @@ export const getUserCourses = CatchAsyncError(
 
       const courses = await CourseModel.find({
         _id: { $in: courseIds }
-      }).lean();
+      }).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
+        .lean();
 
       console.log('[Backend] Found courses:', courses.length);
 
@@ -535,6 +541,7 @@ export const getUserCourses = CatchAsyncError(
         
         return {
           ...course,
+          // progress: userCourse || 0 // Include progress from user's course
         };
       });
 
