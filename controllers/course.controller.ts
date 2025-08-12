@@ -496,8 +496,14 @@ export const getCourseByUser = CatchAsyncError(async (req: Request, res: Respons
 export const getUserCourses = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userCourses = req.user?.courses;
+      const user = await UserModel.findById(req.user?._id);
+      
+      if (!user) {
+        return next(new ErrorHandler("User not found", 404));
+      }
 
+      const userCourses = user.courses;
+      
       if (!userCourses || userCourses.length === 0) {
         return res.status(200).json({
           success: true,
@@ -505,25 +511,24 @@ export const getUserCourses = CatchAsyncError(
         });
       }
 
-      // Get full course details for each course in user's list
+      // Get full course details with progress information
       const courses = await CourseModel.find({
         _id: { $in: userCourses.map((course: any) => course.courseId) }
-      }).select('-courseData -questions -reviews');
+      }).lean();
 
-      // // Add progress information to each course
-      // const coursesWithProgress = courses.map(course => {
-      //   const userCourse = userCourses.find(
-      //     (uc: any) => uc.courseId.toString() === course._id.toString()
-      //   );
-      //   return {
-      //     ...course.toObject(),
-      //     progress: userCourse?.progress || 0
-      //   };
-      // });
+      const coursesWithProgress = courses.map(course => {
+        const userCourse = userCourses.find(
+          (uc: any) => uc.courseId.toString() === course._id.toString()
+        );
+        return {
+          ...course,
+          // progress: userCourse || 0
+        };
+      });
 
       res.status(200).json({
         success: true,
-        // courses: coursesWithProgress
+        courses: coursesWithProgress
       });
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
