@@ -496,7 +496,7 @@ export const getCourseByUser = CatchAsyncError(async (req: Request, res: Respons
 export const getUserCourses = CatchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.params.id; // Get userId from params
+      const userId = req.params.id;
       console.log('[Backend] getUserCourses started for user:', userId);
 
       // Validate userId
@@ -504,7 +504,11 @@ export const getUserCourses = CatchAsyncError(
         return next(new ErrorHandler("Invalid user ID", 400));
       }
 
-      const user = await UserModel.findById(userId);
+      const user = await UserModel.findById(userId).populate({
+        path: 'courses.courseId',
+        select: '-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links'
+      });
+      
       console.log('[Backend] Found user:', user ? user._id : 'null');
       
       if (!user) {
@@ -523,25 +527,11 @@ export const getUserCourses = CatchAsyncError(
         });
       }
 
-      // Get full course details with progress information
-      const courseIds = userCourses.map((course: any) => course.courseId);
-      console.log('[Backend] Course IDs to fetch:', courseIds);
-
-      const courses = await CourseModel.find({
-        _id: { $in: courseIds }
-      }).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
-        .lean();
-
-      console.log('[Backend] Found courses:', courses.length);
-
-      const coursesWithProgress = courses.map(course => {
-        const userCourse = userCourses.find(
-          (uc: any) => uc.courseId.toString() === course._id.toString()
-        );
-        
+      // Map the courses with progress information
+      const coursesWithProgress = userCourses.map((course: any) => {
         return {
-          ...course,
-          // progress: userCourse || 0 // Include progress from user's course
+          ...course.courseId._doc, // Spread the course document
+          progress: course.progress || 0 // Include progress (typo fixed from 'prograss' to 'progress')
         };
       });
 
