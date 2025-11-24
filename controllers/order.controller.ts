@@ -9,7 +9,7 @@ import NotificationModel from "../models/notification.Model";
 import { getAllOrdersService } from "../services/order.service";
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-import { redis } from "../utils/redis";
+// import { redis } from "../utils/redis";
 import mongoose from "mongoose";
 
 // Create a pending order when payment intent is created
@@ -163,7 +163,7 @@ export const confirmOrder = CatchAsyncError(async (req: Request, res: Response, 
       if (user && !user.courses.some(c => c.courseId.toString() === order.courseId.toString())) {
         user.courses.push({ courseId: order.courseId.toString() });
         await user.save({ session });
-        await redis.set(user._id.toString(), JSON.stringify(user));
+        // await redis.set(user._id.toString(), JSON.stringify(user));
       }
 
       await CourseModel.findByIdAndUpdate(
@@ -306,7 +306,7 @@ export const deleteOrder = CatchAsyncError(async (req: Request, res: Response, n
     }
 
     // Invalidate Redis cache for this order
-    await redis.del(id);
+    // await redis.del(id);
 
     res.status(200).json({
       success: true,

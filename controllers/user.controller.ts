@@ -9,7 +9,7 @@ import path from "path";
 import { sendMail } from "../utils/sendMail";
 import cloudinary from "cloudinary";
 import { accessTokenOptions, refreshTokenOptions, sendToken } from "../utils/jwt";
-import { redis } from "../utils/redis"
+// import { redis } from "../utils/redis"
 import { getAllUsersService, getUserById, updateUserRoleService } from "../services/user.service";
 import mongoose from "mongoose";
 
@@ -208,7 +208,7 @@ export const logoutUser = CatchAsyncError(async (req: Request, res: Response, ne
         res.cookie("refresh_token", "", { maxAge: 1 });
         const userId = (req.user?._id as string | mongoose.Types.ObjectId).toString();
 
-        await redis.del(userId);
+        // await redis.del(userId);
         res.status(200).json({
             success: true,
             message: "Logged out successfully"
@@ -227,11 +227,8 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         if (!decoded) {
             return next(new ErrorHandler(message, 400));
         }
-        const session = await redis.get(decoded.id as string);
-        if (!session) {
-            return next(new ErrorHandler('Session not found!', 400));
-        }
-        const user = JSON.parse(session);
+        // const session = await redis.get(decoded.id as string);
+      
 
         const accessToken = jwt.sign({ id: user?._id }, process.env.ACCESS_TOKEN as string, { expiresIn: "15m", });
         const refreshToken = jwt.sign({ id: user?._id }, process.env.REFRESH_TOKEN as string, { expiresIn: "3d", });
@@ -241,7 +238,7 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-        await redis.set(user._id, JSON.stringify(user), "EX", 604800);
+        // await redis.set(user._id, JSON.stringify(user), "EX", 604800);
 
         // res.status(200).json({
         //     status: "success",
@@ -307,7 +304,7 @@ export const updateUserInfo = CatchAsyncError(async (req: Request, res: Response
             user.name = name;
         }
         await user?.save();
-        await redis.set(userId, JSON.stringify(user));
+        // await redis.set(userId, JSON.stringify(user));
         res.status(201).json({
             success: true,
             user,
@@ -338,7 +335,7 @@ export const updatePassword = CatchAsyncError(async (req: Request, res: Response
         }
         user.password = newPassword;
         await user.save();
-        await redis.set(req.user?._id as string, JSON.stringify(user));
+        // await redis.set(req.user?._id as string, JSON.stringify(user));
 
         res.status(201).json({
             success: true,
@@ -381,7 +378,7 @@ export const updateProfilePicture = CatchAsyncError(async (req: Request, res: Re
             }
         }
         await user?.save();
-        await redis.set(userId as string, JSON.stringify(user));
+        // await redis.set(userId as string, JSON.stringify(user));
 
         res.status(200).json({
             success: true,
@@ -460,7 +457,7 @@ export const deleteUser = CatchAsyncError(async (req: Request, res: Response, ne
             return next(new ErrorHandler("User not found", 404));
         }
         await user.deleteOne({ id });
-        await redis.del(id);
+        // await redis.del(id);
         res.status(200).json({
             success: true,
             message: "User deleted successfully"
