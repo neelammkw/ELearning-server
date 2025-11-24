@@ -12,79 +12,40 @@ import analyticsRouter from "./routes/analytics.route";
 import layoutRouter from "./routes/layout.route";
 import {rateLimit} from "express-rate-limit";
 
-// Rate limiter - should be at the top
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.'
-  }
-});
-
-// Apply rate limiting to all requests
-app.use(limiter);
-
-// Body parser middleware
+// Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-// CORS configuration
 app.use(cors({ 
   origin: "https://elearning-web.netlify.app", 
   credentials: true 
 }));
-
-// Request logging middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+standardHeaders: 'draft-7',
+legacyHeaders: false,
+})
 app.use((req, res, next) => {
-  console.log(`📨 Incoming ${req.method} request to ${req.path}`);
-  console.log('📍 Origin:', req.headers.origin);
+  console.log(`Incoming ${req.method} request to ${req.path}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
   next();
 });
-
-// Health check route - should be before other routes
-app.get("/api/v1/health", (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).json({
-    success: true,
-    message: "API is working and healthy",
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Test route
-app.get("/test", (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).json({
-    success: true,
-    message: "API is working",
-  });
-});
-
 // Routes
 app.use("/api/v1", userRouter, courseRouter, orderRouter, notificaionRoute, analyticsRouter, layoutRouter);
 
-// 404 handler - should be after all routes
-app.use('*', (req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found`
-  });
+// Test route
+app.get("/test", (req: Request, res: Response, next: NextFunction) => {
+    res.status(200).json({
+        success: true,
+        message: "API is working",
+    });
 });
 
-// Error middleware - should be last
+//  middleware calls
+app.use(limiter);
 app.use(errorMiddleware);
 
-// Global error handler for uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('🚨 Uncaught Exception:', error);
-  // Don't exit process in production, just log
-  if (process.env.NODE_ENV === 'development') {
-    process.exit(1);
-  }
-});
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
-});
+// Server listening should be in your server.ts/index.ts file
