@@ -4,7 +4,7 @@ import ErrorHandler from "../utils/ErrorHandler";
 import cloudinary from "cloudinary";
 import { getAllCoursesService } from "../services/course.service";
 import CourseModel from "../models/course.model";
-import { redis } from "../utils/redis";
+// import { redis } from "../utils/redis";
 import mongoose, { Types } from "mongoose";
 import ejs from "ejs";
 import path from "path";
@@ -346,8 +346,8 @@ export const editCourse = CatchAsyncError(async (req: Request, res: Response, ne
           throw new Error('Course update failed');
         }
 
-        await redis.del(courseId);
-        await redis.del('allCourses');
+        // await redis.del(courseId);
+        // await redis.del('allCourses');
 
         // Commit transaction after all operations succeed
         await session.commitTransaction();
@@ -416,7 +416,7 @@ export const getSingleCourse = CatchAsyncError(async (req: Request, res: Respons
     // else {
     const course = await CourseModel.findById(req.params.id);
     // const course = await CourseModel.findById(req.params.id).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
-    await redis.set(courseId, JSON.stringify(course), 'EX', 604800);
+    // await redis.set(courseId, JSON.stringify(course), 'EX', 604800);
 
     res.status(200).json({
       success: true,
@@ -461,7 +461,6 @@ export const getAllCourses = CatchAsyncError(async (req: Request, res: Response,
   try {
     console.log('Fetching all courses from database...');
     
-    // Completely bypass Redis for now - fetch directly from database
     const courses = await CourseModel.find()
       .select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
       .populate({
@@ -770,8 +769,8 @@ export const addReview = CatchAsyncError(async (req: Request, res: Response, nex
     await course.save();
 
     // Invalidate cache
-    await redis.del(courseId);
-    await redis.del('allCourses');
+    // await redis.del(courseId);
+    // await redis.del('allCourses');
 
     res.status(200).json({
       success: true,
@@ -848,7 +847,7 @@ export const deleteCourse = CatchAsyncError(async (req: Request, res: Response, 
       await cloudinary.v2.uploader.destroy(course.thumbnail.public_id);
     }
     await course.deleteOne({ id });
-    await redis.del(id.toString())
+    // await redis.del(id.toString())
     res.status(200).json({
       success: true,
       message: "Course deleted successfully"
@@ -1595,7 +1594,7 @@ export const getFullCourse = CatchAsyncError(async (req: Request, res: Response,
     }
 
     // Cache the full course data
-    await redis.set(`fullCourse:${courseId}`, JSON.stringify(course), 'EX', 604800); // 7 days expiration
+    // await redis.set(`fullCourse:${courseId}`, JSON.stringify(course), 'EX', 604800); // 7 days expiration
 
     res.status(200).json({
       success: true,
