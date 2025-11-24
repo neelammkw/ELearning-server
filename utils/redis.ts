@@ -2,33 +2,75 @@
 import {Redis} from "ioredis";
 require('dotenv').config();
 
-const redisClient = () => {
-    if(process.env.REDIS_URL){
-        console.log('Redis connected');
-        return process.env.REDIS_URL;
+// Create a Redis client with better error handling
+const createRedisClient = () => {
+    if(!process.env.REDIS_URL){
+        console.warn('❌ REDIS_URL not found, Redis will be disabled');
+        return null;
     }
-    throw new Error('Redis connection failed');
+
+    try {
+        const client = new Redis(process.env.REDIS_URL, {
+            maxRetriesPerRequest: 1,
+            retryDelayOnFailover: 100,
+            enableReadyCheck: false,
+            lazyConnect: true,
+            connectTimeout: 5000,
+            commandTimeout: 3000,
+        });
+
+        client.on('error', (err) => {
+            console.warn('❌ Redis connection error (non-fatal):', err.message);
+        });
+
+        client.on('connect', () => {
+            console.log('✅ Redis connected successfully');
+        });
+
+        return client;
+    } catch (error) {
+        console.warn('❌ Failed to create Redis client:', error);
+        return null;
+    }
 };
 
-// Updated Redis configuration with better error handling
-export const redis = new Redis(redisClient(), {
-    maxRetriesPerRequest: 1, // Reduce from default 20 to 1
-    retryDelayOnFailover: 100,
-    enableReadyCheck: false,
-    lazyConnect: true,
-    connectTimeout: 10000,
-    commandTimeout: 5000,
-});
+export const redis = createRedisClient();
 
-// Add event listeners for better debugging
-redis.on('error', (err) => {
-    console.error('Redis Client Error:', err);
-});
-
-redis.on('connect', () => {
-    console.log('Redis connected successfully');
-});
-
-redis.on('ready', () => {
-    console.log('Redis ready for commands');
-});
+// Safe Redis operations that won't crash the app
+export const safeRedis = {
+    async get(key: string): Promise<string | null> {
+        if (!redis) return null;
+        try {
+            return await redis.get(key);
+        } catch (error) {
+            console.warn('Redis get error:', error);
+            return null;
+        }
+    },
+    
+    async set(key: string, value: string, expire?: number): Promise<boolean> {
+        if (!redis) return false;
+        try {
+            if (expire) {
+                await redis.setex(key, expire, value);
+            } else {
+                await redis.set(key, value);
+            }
+            return true;
+        } catch (error) {
+            console.warn('Redis set error:', error);
+            return false;
+        }
+    },
+    
+    async del(key: string): Promise<boolean> {
+        if (!redis) return false;
+        try {
+            await redis.del(key);
+            return true;
+        } catch (error) {
+            console.warn('Redis del error:', error);
+            return false;
+        }
+    }
+};
