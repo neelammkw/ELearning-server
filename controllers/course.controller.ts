@@ -459,38 +459,18 @@ export const getSingleCourse = CatchAsyncError(async (req: Request, res: Respons
 
 export const getAllCourses = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Try to get from Redis cache first
-    let courses;
-    try {
-      const cachedCourses = await redis.get("allCourses");
-      if (cachedCourses) {
-        courses = JSON.parse(cachedCourses);
-        console.log('Courses loaded from Redis cache');
-      }
-    } catch (redisError) {
-      console.warn('Redis cache error, falling back to database:', redisError);
-      // Continue to database query if Redis fails
-    }
+    console.log('Fetching all courses from database...');
+    
+    // Completely bypass Redis for now - fetch directly from database
+    const courses = await CourseModel.find()
+      .select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
+      .populate({
+        path: 'reviews.user',
+        select: 'name email avatar',
+        options: { lean: true }
+      });
 
-    // If not in cache or Redis failed, fetch from database
-    if (!courses) {
-      courses = await CourseModel.find()
-        .select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
-        .populate({
-          path: 'reviews.user',
-          select: 'name email avatar',
-          options: { lean: true }
-        });
-
-      // Try to cache the result, but don't fail if Redis is down
-      try {
-        await redis.set("allCourses", JSON.stringify(courses), 'EX', 604800); // 7 days expiration
-        console.log('Courses cached in Redis');
-      } catch (cacheError) {
-        console.warn('Failed to cache courses in Redis:', cacheError);
-        // Continue without caching - the request should still succeed
-      }
-    }
+    console.log(`Successfully fetched ${courses.length} courses from database`);
 
     res.status(200).json({
       success: true,
