@@ -1,5 +1,5 @@
 import { app } from "./app";
-import { initSocketServer } from "./socketServer";
+// import { initSocketServer } from "./socketServer";
 import http from 'http';
 require("dotenv").config();
 import connectDB from "./utils/db";
