@@ -2,35 +2,40 @@ import { Response, Request, NextFunction } from "express";
 import { CatchAsyncError } from "./catchAsyncErrors";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import ErrorHandler from "../utils/ErrorHandler";
-import {redis} from "../utils/redis";
+import User from "../models/user.model";
 
-
-//authenticated user 
+// Authenticated user 
 export const isAuthenticated = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-    const accessToken = req.cookies.access_token as string;
-    if(!accessToken) {
-        return next(new ErrorHandler("Please login to access this resource", 400));
-    }
-    const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN as string) as JwtPayload;
+    try {
+        const accessToken = req.cookies.access_token as string;
+        if (!accessToken) {
+            return next(new ErrorHandler("Please login to access this resource", 401));
+        }
 
-    if(!decoded || !decoded.id) {
-        return next(new ErrorHandler("access token is not valid", 400));
-    }
-    const user = await redis.get(decoded.id);
-    // console.log('User from Redis:', user); 
-    if(!user ) {
-        return next(new ErrorHandler("Please login to access this resource", 400));
-    }
-    req.user = JSON.parse(user);
-    // console.log('Request user set to:', req.user); 
-    next();
+        const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN as string) as JwtPayload;
 
+        if (!decoded || !decoded.id) {
+            return next(new ErrorHandler("Access token is not valid", 401));
+        }
+
+        // DIRECT DATABASE FETCH - NO REDIS
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return next(new ErrorHandler("Please login to access this resource", 401));
+        }
+
+        req.user = user;
+        next();
+
+    } catch (error: any) {
+        return next(new ErrorHandler("Authentication failed: " + error.message, 401));
+    }
 });
 
 export const authorizationRoles = (...roles: string[]) => {
-    return (req:Request, res:Response, next:NextFunction) => {
-        if(!roles.includes(req.user?.role || "")) {
-            return next(new ErrorHandler (`Role: ${req.user?.role} is not allowed to access this resource`, 403))
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user || !roles.includes(req.user.role || "")) {
+            return next(new ErrorHandler(`Role: ${req.user?.role} is not allowed to access this resource`, 403));
         }
         next();
     }

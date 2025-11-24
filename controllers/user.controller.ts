@@ -227,24 +227,21 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
         if (!decoded) {
             return next(new ErrorHandler(message, 400));
         }
-        // const session = await redis.get(decoded.id as string);
-      
+        
+        // FIX: Use decoded.id instead of User._id
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
 
-        const accessToken = jwt.sign({ id: user?._id }, process.env.ACCESS_TOKEN as string, { expiresIn: "15m", });
-        const refreshToken = jwt.sign({ id: user?._id }, process.env.REFRESH_TOKEN as string, { expiresIn: "3d", });
+        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: "15m" });
+        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: "3d" });
 
         req.user = user;
 
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
 
-        // await redis.set(user._id, JSON.stringify(user), "EX", 604800);
-
-        // res.status(200).json({
-        //     status: "success",
-        //     accessToken,
-
-        // })
         next();
 
     } catch (error: any) {

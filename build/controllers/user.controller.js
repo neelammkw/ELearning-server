@@ -14,7 +14,7 @@ const path_1 = __importDefault(require("path"));
 const sendMail_1 = require("../utils/sendMail");
 const cloudinary_1 = __importDefault(require("cloudinary"));
 const jwt_1 = require("../utils/jwt");
-const redis_1 = require("../utils/redis");
+// import { redis } from "../utils/redis"
 const user_service_1 = require("../services/user.service");
 exports.registrationUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
@@ -168,7 +168,7 @@ exports.logoutUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, ne
         res.cookie("access_token", "", { maxAge: 1 });
         res.cookie("refresh_token", "", { maxAge: 1 });
         const userId = (req.user?._id).toString();
-        await redis_1.redis.del(userId);
+        // await redis.del(userId);
         res.status(200).json({
             success: true,
             message: "Logged out successfully"
@@ -186,21 +186,16 @@ exports.updateAccessToken = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, 
         if (!decoded) {
             return next(new ErrorHandler_1.default(message, 400));
         }
-        const session = await redis_1.redis.get(decoded.id);
-        if (!session) {
-            return next(new ErrorHandler_1.default('Session not found!', 400));
+        // FIX: Use decoded.id instead of User._id
+        const user = await user_model_1.default.findById(decoded.id);
+        if (!user) {
+            return next(new ErrorHandler_1.default("User not found", 404));
         }
-        const user = JSON.parse(session);
-        const accessToken = jsonwebtoken_1.default.sign({ id: user?._id }, process.env.ACCESS_TOKEN, { expiresIn: "15m", });
-        const refreshToken = jsonwebtoken_1.default.sign({ id: user?._id }, process.env.REFRESH_TOKEN, { expiresIn: "3d", });
+        const accessToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.ACCESS_TOKEN, { expiresIn: "15m" });
+        const refreshToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.REFRESH_TOKEN, { expiresIn: "3d" });
         req.user = user;
         res.cookie("access_token", accessToken, jwt_1.accessTokenOptions);
         res.cookie("refresh_token", refreshToken, jwt_1.refreshTokenOptions);
-        await redis_1.redis.set(user._id, JSON.stringify(user), "EX", 604800);
-        // res.status(200).json({
-        //     status: "success",
-        //     accessToken,
-        // })
         next();
     }
     catch (error) {
@@ -249,7 +244,7 @@ exports.updateUserInfo = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res
             user.name = name;
         }
         await user?.save();
-        await redis_1.redis.set(userId, JSON.stringify(user));
+        // await redis.set(userId, JSON.stringify(user));
         res.status(201).json({
             success: true,
             user,
@@ -275,7 +270,7 @@ exports.updatePassword = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res
         }
         user.password = newPassword;
         await user.save();
-        await redis_1.redis.set(req.user?._id, JSON.stringify(user));
+        // await redis.set(req.user?._id as string, JSON.stringify(user));
         res.status(201).json({
             success: true,
             user,
@@ -314,7 +309,7 @@ exports.updateProfilePicture = (0, catchAsyncErrors_1.CatchAsyncError)(async (re
             }
         }
         await user?.save();
-        await redis_1.redis.set(userId, JSON.stringify(user));
+        // await redis.set(userId as string, JSON.stringify(user));
         res.status(200).json({
             success: true,
             user
@@ -380,7 +375,7 @@ exports.deleteUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, ne
             return next(new ErrorHandler_1.default("User not found", 404));
         }
         await user.deleteOne({ id });
-        await redis_1.redis.del(id);
+        // await redis.del(id);
         res.status(200).json({
             success: true,
             message: "User deleted successfully"

@@ -14,7 +14,7 @@ const notification_Model_1 = __importDefault(require("../models/notification.Mod
 const order_service_1 = require("../services/order.service");
 require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const redis_1 = require("../utils/redis");
+// import { redis } from "../utils/redis";
 const mongoose_1 = __importDefault(require("mongoose"));
 // Create a pending order when payment intent is created
 exports.createPaymentIntent = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
@@ -145,7 +145,7 @@ exports.confirmOrder = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, 
             if (user && !user.courses.some(c => c.courseId.toString() === order.courseId.toString())) {
                 user.courses.push({ courseId: order.courseId.toString() });
                 await user.save({ session });
-                await redis_1.redis.set(user._id.toString(), JSON.stringify(user));
+                // await redis.set(user._id.toString(), JSON.stringify(user));
             }
             await course_model_1.default.findByIdAndUpdate(order.courseId, { $inc: { purchased: 1 } }, { session });
             await session.commitTransaction();
@@ -270,7 +270,7 @@ exports.deleteOrder = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, n
             });
         }
         // Invalidate Redis cache for this order
-        await redis_1.redis.del(id);
+        // await redis.del(id);
         res.status(200).json({
             success: true,
             message: "Order deleted successfully"

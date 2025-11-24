@@ -9,7 +9,7 @@ const ErrorHandler_1 = __importDefault(require("../utils/ErrorHandler"));
 const cloudinary_1 = __importDefault(require("cloudinary"));
 const course_service_1 = require("../services/course.service");
 const course_model_1 = __importDefault(require("../models/course.model"));
-const redis_1 = require("../utils/redis");
+// import { redis } from "../utils/redis";
 const mongoose_1 = __importDefault(require("mongoose"));
 const ejs_1 = __importDefault(require("ejs"));
 const path_1 = __importDefault(require("path"));
@@ -287,8 +287,8 @@ exports.editCourse = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, ne
                     console.error('Failed to update course');
                     throw new Error('Course update failed');
                 }
-                await redis_1.redis.del(courseId);
-                await redis_1.redis.del('allCourses');
+                // await redis.del(courseId);
+                // await redis.del('allCourses');
                 // Commit transaction after all operations succeed
                 await session.commitTransaction();
                 res.status(200).json({
@@ -350,7 +350,7 @@ exports.getSingleCourse = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, re
         // else {
         const course = await course_model_1.default.findById(req.params.id);
         // const course = await CourseModel.findById(req.params.id).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links");
-        await redis_1.redis.set(courseId, JSON.stringify(course), 'EX', 604800);
+        // await redis.set(courseId, JSON.stringify(course), 'EX', 604800);
         res.status(200).json({
             success: true,
             course,
@@ -362,30 +362,50 @@ exports.getSingleCourse = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, re
     }
 });
 // get all course --- without purchasing
+// export const getAllCourses = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     // const isCacheExist = await redis.get("allCourses");
+//     // if (!isCacheExist) {
+//     const courses = await CourseModel.find()
+//       .select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
+//       .populate({
+//         path: 'reviews.user',
+//         select: 'name email avatar', // Only include these fields
+//         options: { lean: true }
+//       });
+//     await redis.set("allCourses", JSON.stringify(courses));
+//     res.status(200).json({
+//       success: true,
+//       courses,
+//     });
+//     // } else {
+//     //     res.status(200).json({
+//     //         success: true,
+//     //         courses: JSON.parse(isCacheExist),
+//     //     });
+//     // }
+//   } catch (error: any) {
+//     return next(new ErrorHandler(error.message, 400));
+//   }
+// });
 exports.getAllCourses = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
-        // const isCacheExist = await redis.get("allCourses");
-        // if (!isCacheExist) {
+        console.log('Fetching all courses from database...');
         const courses = await course_model_1.default.find()
             .select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
             .populate({
             path: 'reviews.user',
-            select: 'name email avatar', // Only include these fields
+            select: 'name email avatar',
             options: { lean: true }
         });
-        await redis_1.redis.set("allCourses", JSON.stringify(courses));
+        console.log(`Successfully fetched ${courses.length} courses from database`);
         res.status(200).json({
             success: true,
             courses,
         });
-        // } else {
-        //     res.status(200).json({
-        //         success: true,
-        //         courses: JSON.parse(isCacheExist),
-        //     });
-        // }
     }
     catch (error) {
+        console.error('Error in getAllCourses:', error);
         return next(new ErrorHandler_1.default(error.message, 400));
     }
 });
@@ -419,13 +439,16 @@ exports.getCourseByUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, re
 });
 exports.getUserCourses = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
-        const userId = req.params.id; // Get userId from params
+        const userId = req.params.id;
         console.log('[Backend] getUserCourses started for user:', userId);
         // Validate userId
         if (!mongoose_1.default.Types.ObjectId.isValid(userId)) {
             return next(new ErrorHandler_1.default("Invalid user ID", 400));
         }
-        const user = await user_model_1.default.findById(userId);
+        const user = await user_model_1.default.findById(userId).populate({
+            path: 'courses.courseId',
+            select: '-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links'
+        });
         console.log('[Backend] Found user:', user ? user._id : 'null');
         if (!user) {
             console.log('[Backend] User not found');
@@ -440,19 +463,11 @@ exports.getUserCourses = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res
                 courses: []
             });
         }
-        // Get full course details with progress information
-        const courseIds = userCourses.map((course) => course.courseId);
-        console.log('[Backend] Course IDs to fetch:', courseIds);
-        const courses = await course_model_1.default.find({
-            _id: { $in: courseIds }
-        }).select("-courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
-            .lean();
-        console.log('[Backend] Found courses:', courses.length);
-        const coursesWithProgress = courses.map(course => {
-            const userCourse = userCourses.find((uc) => uc.courseId.toString() === course._id.toString());
+        // Map the courses with progress information
+        const coursesWithProgress = userCourses.map((course) => {
             return {
-                ...course,
-                // progress: userCourse || 0 // Include progress from user's course
+                ...course.courseId._doc, // Spread the course document
+                progress: course.progress || 0 // Include progress (typo fixed from 'prograss' to 'progress')
             };
         });
         console.log('[Backend] Final courses with progress:', coursesWithProgress);
@@ -608,8 +623,8 @@ exports.addReview = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, nex
         course.ratings = totalRatings / course.reviews.length;
         await course.save();
         // Invalidate cache
-        await redis_1.redis.del(courseId);
-        await redis_1.redis.del('allCourses');
+        // await redis.del(courseId);
+        // await redis.del('allCourses');
         res.status(200).json({
             success: true,
             course
@@ -676,7 +691,7 @@ exports.deleteCourse = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, 
             await cloudinary_1.default.v2.uploader.destroy(course.thumbnail.public_id);
         }
         await course.deleteOne({ id });
-        await redis_1.redis.del(id.toString());
+        // await redis.del(id.toString())
         res.status(200).json({
             success: true,
             message: "Course deleted successfully"
@@ -1284,7 +1299,7 @@ exports.getFullCourse = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res,
             return next(new ErrorHandler_1.default("Course not found", 404));
         }
         // Cache the full course data
-        await redis_1.redis.set(`fullCourse:${courseId}`, JSON.stringify(course), 'EX', 604800); // 7 days expiration
+        // await redis.set(`fullCourse:${courseId}`, JSON.stringify(course), 'EX', 604800); // 7 days expiration
         res.status(200).json({
             success: true,
             course
