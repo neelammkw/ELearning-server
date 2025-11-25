@@ -1,5 +1,5 @@
      import express from "express";
-     import { loginUser, registrationUser, logoutUser, updateAccessToken, getUserInfo, socialAuth, updateUserInfo, updatePassword, updateProfilePicture, getAllUsers, updateUserRole, deleteUser} from "../controllers/user.controller";
+     import { loginUser, registrationUser, logoutUser, updateAccessToken, getUserInfo, socialAuth, updateUserInfo, updatePassword, updateProfilePicture, getAllUsers, updateUserRole, deleteUser, refreshToken} from "../controllers/user.controller";
      import {activateUser} from "../controllers/user.controller";
      import { authorizationRoles, isAuthenticated } from "../middleware/auth";
 
@@ -12,7 +12,7 @@
      userRouter.get('/logout', isAuthenticated,
           logoutUser);
      //authorizationRoles("admin")
-     userRouter.get("/refresh", updateAccessToken);
+     userRouter.get("/refresh", refreshToken);
      userRouter.get("/me", updateAccessToken, isAuthenticated, getUserInfo);
      userRouter.post("/social-auth", socialAuth);
      userRouter.put("/update-userinfo", updateAccessToken, isAuthenticated, updateUserInfo);
