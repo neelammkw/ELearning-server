@@ -250,18 +250,23 @@ export const refreshToken = CatchAsyncError(async (req: Request, res: Response, 
     try {
         const refresh_token = req.cookies.refresh_token as string;
         
+        console.log('RefreshToken controller - cookie present:', !!refresh_token);
+        
         if (!refresh_token) {
+            console.log('No refresh token found in cookies');
             return next(new ErrorHandler("Please login to access this resource", 401));
         }
 
         const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
         
         if (!decoded) {
+            console.log('Invalid refresh token');
             return next(new ErrorHandler("Invalid refresh token", 400));
         }
         
         const user = await User.findById(decoded.id);
         if (!user) {
+            console.log('User not found for ID:', decoded.id);
             return next(new ErrorHandler("User not found", 404));
         }
 
@@ -276,6 +281,8 @@ export const refreshToken = CatchAsyncError(async (req: Request, res: Response, 
         // Update cookies
         res.cookie("access_token", accessToken, accessTokenOptions);
         res.cookie("refresh_token", newRefreshToken, refreshTokenOptions);
+
+        console.log('Refresh successful for user:', user.email);
 
         return res.status(200).json({
             success: true,
@@ -329,7 +336,7 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
     try {
         const refresh_token = req.cookies.refresh_token as string;
         
-        console.log('Refresh token endpoint called, cookie present:', !!refresh_token);
+        console.log('UpdateAccessToken middleware - cookie present:', !!refresh_token);
         
         if (!refresh_token) {
             console.log('No refresh token found in cookies');
@@ -363,23 +370,7 @@ export const updateAccessToken = CatchAsyncError(async (req: Request, res: Respo
 
         console.log('Tokens refreshed successfully for user:', user.email);
 
-        // **CRITICAL FIX**: Send JSON response for refresh endpoint
-        if (req.originalUrl === "/api/v1/refresh" || req.path === "/refresh") {
-            return res.status(200).json({
-                success: true,
-                message: "Token refreshed successfully",
-                accessToken,
-                user: {
-                    _id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    avatar: user.avatar,
-                    role: user.role
-                }
-            });
-        }
-
-        // For other routes that use this middleware, continue
+        // Set user for the next middleware
         req.user = user;
         next();
 

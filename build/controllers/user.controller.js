@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.updateUserRole = exports.getAllUsers = exports.updateProfilePicture = exports.updatePassword = exports.updateUserInfo = exports.socialAuth = exports.getUserInfo = exports.updateAccessToken = exports.logoutUser = exports.loginUser = exports.activateUser = exports.createActiveToken = exports.registrationUser = void 0;
+exports.deleteUser = exports.updateUserRole = exports.getAllUsers = exports.updateProfilePicture = exports.updatePassword = exports.updateUserInfo = exports.socialAuth = exports.getUserInfo = exports.updateAccessToken = exports.refreshToken = exports.logoutUser = exports.loginUser = exports.activateUser = exports.createActiveToken = exports.registrationUser = void 0;
 require('dotenv').config();
 const user_model_1 = __importDefault(require("../models/user.model"));
 const ErrorHandler_1 = __importDefault(require("../utils/ErrorHandler"));
@@ -202,28 +202,112 @@ exports.logoutUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, ne
         return next(new ErrorHandler_1.default(error.message, 400));
     }
 });
+// Add this new controller function
+exports.refreshToken = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
+    try {
+        const refresh_token = req.cookies.refresh_token;
+        console.log('RefreshToken controller - cookie present:', !!refresh_token);
+        if (!refresh_token) {
+            console.log('No refresh token found in cookies');
+            return next(new ErrorHandler_1.default("Please login to access this resource", 401));
+        }
+        const decoded = jsonwebtoken_1.default.verify(refresh_token, process.env.REFRESH_TOKEN);
+        if (!decoded) {
+            console.log('Invalid refresh token');
+            return next(new ErrorHandler_1.default("Invalid refresh token", 400));
+        }
+        const user = await user_model_1.default.findById(decoded.id);
+        if (!user) {
+            console.log('User not found for ID:', decoded.id);
+            return next(new ErrorHandler_1.default("User not found", 404));
+        }
+        const accessToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.ACCESS_TOKEN, {
+            expiresIn: "15m"
+        });
+        const newRefreshToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.REFRESH_TOKEN, {
+            expiresIn: "3d"
+        });
+        // Update cookies
+        res.cookie("access_token", accessToken, jwt_1.accessTokenOptions);
+        res.cookie("refresh_token", newRefreshToken, jwt_1.refreshTokenOptions);
+        console.log('Refresh successful for user:', user.email);
+        return res.status(200).json({
+            success: true,
+            message: "Token refreshed successfully",
+            accessToken,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+                role: user.role
+            }
+        });
+    }
+    catch (error) {
+        console.error('Token refresh error:', error.message);
+        return next(new ErrorHandler_1.default("Please login to access this resource", 401));
+    }
+});
+// export const updateAccessToken = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const refresh_token = req.cookies.refresh_token as string;
+//         const decoded = jwt.verify(refresh_token,
+//             process.env.REFRESH_TOKEN as string) as JwtPayload;
+//         const message = 'Could not refresh token';
+//         if (!decoded) {
+//             return next(new ErrorHandler(message, 400));
+//         }
+//         // FIX: Use decoded.id instead of User._id
+//         const user = await User.findById(decoded.id);
+//         if (!user) {
+//             return next(new ErrorHandler("User not found", 404));
+//         }
+//         const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: "15m" });
+//         const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: "3d" });
+//         req.user = user;
+//         res.cookie("access_token", accessToken, accessTokenOptions);
+//         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+//         next();
+//     } catch (error: any) {
+//         return next(new ErrorHandler(error.message, 400));
+//     }
+// });
 exports.updateAccessToken = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
         const refresh_token = req.cookies.refresh_token;
-        const decoded = jsonwebtoken_1.default.verify(refresh_token, process.env.REFRESH_TOKEN);
-        const message = 'Could not refresh token';
-        if (!decoded) {
-            return next(new ErrorHandler_1.default(message, 400));
+        console.log('UpdateAccessToken middleware - cookie present:', !!refresh_token);
+        if (!refresh_token) {
+            console.log('No refresh token found in cookies');
+            return next(new ErrorHandler_1.default("Please login to access this resource", 401));
         }
-        // FIX: Use decoded.id instead of User._id
+        const decoded = jsonwebtoken_1.default.verify(refresh_token, process.env.REFRESH_TOKEN);
+        if (!decoded) {
+            console.log('Invalid refresh token');
+            return next(new ErrorHandler_1.default("Invalid refresh token", 400));
+        }
         const user = await user_model_1.default.findById(decoded.id);
         if (!user) {
+            console.log('User not found for ID:', decoded.id);
             return next(new ErrorHandler_1.default("User not found", 404));
         }
-        const accessToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.ACCESS_TOKEN, { expiresIn: "15m" });
-        const refreshToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.REFRESH_TOKEN, { expiresIn: "3d" });
-        req.user = user;
+        const accessToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.ACCESS_TOKEN, {
+            expiresIn: "15m"
+        });
+        const newRefreshToken = jsonwebtoken_1.default.sign({ id: user._id }, process.env.REFRESH_TOKEN, {
+            expiresIn: "3d"
+        });
+        // Update cookies
         res.cookie("access_token", accessToken, jwt_1.accessTokenOptions);
-        res.cookie("refresh_token", refreshToken, jwt_1.refreshTokenOptions);
+        res.cookie("refresh_token", newRefreshToken, jwt_1.refreshTokenOptions);
+        console.log('Tokens refreshed successfully for user:', user.email);
+        // Set user for the next middleware
+        req.user = user;
         next();
     }
     catch (error) {
-        return next(new ErrorHandler_1.default(error.message, 400));
+        console.error('Token refresh error:', error.message);
+        return next(new ErrorHandler_1.default("Please login to access this resource", 401));
     }
 });
 exports.getUserInfo = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {

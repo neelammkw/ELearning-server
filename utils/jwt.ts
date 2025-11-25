@@ -42,19 +42,21 @@ export const sendToken = (user: IUser, statusCode: number, res: Response) => {
 
     // Use your existing ITokenOptions instead of CookieOptions
     const accessOptions: ITokenOptions = {
-        expires: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
-        maxAge: 5 * 60 * 1000,
+        expires: new Date(Date.now() + 15 * 60 * 1000), // 5 minutes
+        maxAge: 15 * 60 * 1000,
         httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+   secure: process.env.NODE_ENV === "production",
+
     };
 
     const refreshOptions: ITokenOptions = {
         expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
         maxAge: 3 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+   secure: process.env.NODE_ENV === "production",
+
     };
 
     res.cookie("access_token", accessToken, accessOptions);
