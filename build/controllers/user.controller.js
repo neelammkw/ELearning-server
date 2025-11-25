@@ -163,15 +163,39 @@ exports.loginUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, nex
         return next(new ErrorHandler_1.default(error.message, 400));
     }
 });
+// export const logoutUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         res.cookie("access_token", "", { maxAge: 1 });
+//         res.cookie("refresh_token", "", { maxAge: 1 });
+//         const userId = (req.user?._id as string | mongoose.Types.ObjectId).toString();
+//         // await redis.del(userId);
+//         res.status(200).json({
+//             success: true,
+//             message: "Logged out successfully"
+//         })
+//     }
+//     catch (error: any) {
+//         return next(new ErrorHandler(error.message, 400));
+//     }
+// });
 exports.logoutUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
-        res.cookie("access_token", "", { maxAge: 1 });
-        res.cookie("refresh_token", "", { maxAge: 1 });
-        const userId = (req.user?._id).toString();
-        // await redis.del(userId);
+        // Clear authentication cookies properly
+        res.cookie("access_token", "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            maxAge: 0,
+        });
+        res.cookie("refresh_token", "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            maxAge: 0,
+        });
         res.status(200).json({
             success: true,
-            message: "Logged out successfully"
+            message: "Logged out successfully",
         });
     }
     catch (error) {
