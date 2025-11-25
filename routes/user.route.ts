@@ -12,7 +12,7 @@
      userRouter.get('/logout', isAuthenticated,
           logoutUser);
      //authorizationRoles("admin")
-     userRouter.get("/refresh", refreshToken);
+     userRouter.get("/refresh", updateAccessToken, refreshToken);
      userRouter.get("/me", updateAccessToken, isAuthenticated, getUserInfo);
      userRouter.post("/social-auth", socialAuth);
      userRouter.put("/update-userinfo", updateAccessToken, isAuthenticated, updateUserInfo);

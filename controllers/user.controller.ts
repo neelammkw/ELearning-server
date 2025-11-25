@@ -295,37 +295,99 @@ export const refreshToken = CatchAsyncError(async (req: Request, res: Response, 
         return next(new ErrorHandler("Please login to access this resource", 401));
     }
 });
+// export const updateAccessToken = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const refresh_token = req.cookies.refresh_token as string;
+//         const decoded = jwt.verify(refresh_token,
+//             process.env.REFRESH_TOKEN as string) as JwtPayload;
+//         const message = 'Could not refresh token';
+//         if (!decoded) {
+//             return next(new ErrorHandler(message, 400));
+//         }
+        
+//         // FIX: Use decoded.id instead of User._id
+//         const user = await User.findById(decoded.id);
+//         if (!user) {
+//             return next(new ErrorHandler("User not found", 404));
+//         }
+
+//         const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: "15m" });
+//         const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: "3d" });
+
+//         req.user = user;
+
+//         res.cookie("access_token", accessToken, accessTokenOptions);
+//         res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+
+//         next();
+
+//     } catch (error: any) {
+//         return next(new ErrorHandler(error.message, 400));
+//     }
+// });
 export const updateAccessToken = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const refresh_token = req.cookies.refresh_token as string;
-        const decoded = jwt.verify(refresh_token,
-            process.env.REFRESH_TOKEN as string) as JwtPayload;
-        const message = 'Could not refresh token';
+        
+        console.log('Refresh token endpoint called, cookie present:', !!refresh_token);
+        
+        if (!refresh_token) {
+            console.log('No refresh token found in cookies');
+            return next(new ErrorHandler("Please login to access this resource", 401));
+        }
+
+        const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
+        
         if (!decoded) {
-            return next(new ErrorHandler(message, 400));
+            console.log('Invalid refresh token');
+            return next(new ErrorHandler("Invalid refresh token", 400));
         }
         
-        // FIX: Use decoded.id instead of User._id
         const user = await User.findById(decoded.id);
         if (!user) {
+            console.log('User not found for ID:', decoded.id);
             return next(new ErrorHandler("User not found", 404));
         }
 
-        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { expiresIn: "15m" });
-        const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { expiresIn: "3d" });
+        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { 
+            expiresIn: "15m" 
+        });
+        
+        const newRefreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { 
+            expiresIn: "3d" 
+        });
 
-        req.user = user;
-
+        // Update cookies
         res.cookie("access_token", accessToken, accessTokenOptions);
-        res.cookie("refresh_token", refreshToken, refreshTokenOptions);
+        res.cookie("refresh_token", newRefreshToken, refreshTokenOptions);
 
+        console.log('Tokens refreshed successfully for user:', user.email);
+
+        // **CRITICAL FIX**: Send JSON response for refresh endpoint
+        if (req.originalUrl === "/api/v1/refresh" || req.path === "/refresh") {
+            return res.status(200).json({
+                success: true,
+                message: "Token refreshed successfully",
+                accessToken,
+                user: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    role: user.role
+                }
+            });
+        }
+
+        // For other routes that use this middleware, continue
+        req.user = user;
         next();
 
     } catch (error: any) {
-        return next(new ErrorHandler(error.message, 400));
+        console.error('Token refresh error:', error.message);
+        return next(new ErrorHandler("Please login to access this resource", 401));
     }
 });
-
 export const getUserInfo = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = (req.user?._id as string | mongoose.Types.ObjectId).toString();
