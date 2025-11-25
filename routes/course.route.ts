@@ -16,17 +16,17 @@ courseRouter.put("/edit-course/:id", updateAccessToken, isAuthenticated, authori
 courseRouter.get("/get-course/:id", getSingleCourse);
 courseRouter.get("/get-admin-courses", isAuthenticated, authorizationRoles("admin"), getAdminAllCourse);
 courseRouter.get("/get-courses", getAllCourses);
-courseRouter.get("/get-course-content/:id", updateAccessToken, isAuthenticated, getCourseByUser);
+courseRouter.get("/get-course-content/:id",  getCourseByUser);
 courseRouter.put("/add-question", updateAccessToken, isAuthenticated, addQuestion);
 courseRouter.put("/add-answer", updateAccessToken, isAuthenticated, addAnswer);
 courseRouter.put("/add-review/:id", updateAccessToken, addReview);
 courseRouter.put("/add-reply", updateAccessToken, isAuthenticated, authorizationRoles("admin"), addReplyToReview);
 courseRouter.get("/get-courses", isAuthenticated, authorizationRoles("admin"), getAllCourses);
 courseRouter.get("/get-full-course/:id", isAuthenticated, authorizationRoles("admin"), getFullCourse);
-courseRouter.get("/user-enrolledcourses/:id", updateAccessToken, isAuthenticated, getUserCourses);
+courseRouter.get("/user-enrolledcourses/:id", getUserCourses);
 
-courseRouter.get("/user-courses/:id", updateAccessToken, isAuthenticated, checkCourseEnrollment);
-courseRouter.delete("/delete-course/:id", updateAccessToken, isAuthenticated, authorizationRoles("admin"), deleteCourse);
+courseRouter.get("/user-courses/:id", checkCourseEnrollment);
+courseRouter.delete("/delete-course/:id",  authorizationRoles("admin"), deleteCourse);
 courseRouter.post(
   '/add-video-review/:courseId/:contentId/:videoId', updateAccessToken,
   isAuthenticated,
