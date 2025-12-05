@@ -11,6 +11,7 @@ const catchAsyncErrors_1 = require("../middleware/catchAsyncErrors");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const ejs_1 = __importDefault(require("ejs"));
 const path_1 = __importDefault(require("path"));
+const cookieOptions_1 = require("../utils/cookieOptions");
 const sendMail_1 = require("../utils/sendMail");
 const cloudinary_1 = __importDefault(require("cloudinary"));
 const jwt_1 = require("../utils/jwt");
@@ -180,19 +181,9 @@ exports.loginUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, nex
 // });
 exports.logoutUser = (0, catchAsyncErrors_1.CatchAsyncError)(async (req, res, next) => {
     try {
-        // Clear authentication cookies properly
-        res.cookie("access_token", "", {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
-            maxAge: 0,
-        });
-        res.cookie("refresh_token", "", {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
-            maxAge: 0,
-        });
+        const clearCookieOptions = (0, cookieOptions_1.getClearCookieOptions)();
+        res.cookie("access_token", "", clearCookieOptions);
+        res.cookie("refresh_token", "", clearCookieOptions);
         res.status(200).json({
             success: true,
             message: "Logged out successfully",

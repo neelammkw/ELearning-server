@@ -6,6 +6,9 @@ import { CatchAsyncError } from "../middleware/catchAsyncErrors";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
 import ejs from "ejs";
 import path from "path";
+import { getClearCookieOptions } from "../utils/cookieOptions";
+
+
 import { sendMail } from "../utils/sendMail";
 import cloudinary from "cloudinary";
 import { accessTokenOptions, refreshTokenOptions, sendToken } from "../utils/jwt";
@@ -18,7 +21,7 @@ interface IRegistrationBody {
     email: string;
     password: string;
     avatar?: string;
-    role?: string;  
+    role?: string;
 }
 
 
@@ -38,7 +41,7 @@ export const registrationUser = CatchAsyncError(async (req: Request, res: Respon
         const existingUser = await User.findOne({ email });
         if (existingUser) return next(new ErrorHandler("User already exists", 400));
         if (process.env.NODE_ENV === 'development') {
-            const user = await User.create({ name, email, password , role});
+            const user = await User.create({ name, email, password, role });
             return res.status(201).json({
                 success: true,
                 user: {
@@ -62,7 +65,7 @@ export const registrationUser = CatchAsyncError(async (req: Request, res: Respon
             name,
             email,
             password,
-            role: role || 'user' ,
+            role: role || 'user',
             avatar: {
                 public_id: "default",
                 url: "https://placeholder.com/avatar.png"
@@ -220,26 +223,15 @@ export const loginUser = CatchAsyncError(async (req: Request, res: Response, nex
 // });
 export const logoutUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Clear authentication cookies properly
-        res.cookie("access_token", "", {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
-            maxAge: 0,
-        });
+        const clearCookieOptions = getClearCookieOptions();
 
-        res.cookie("refresh_token", "", {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none",
-            maxAge: 0,
-        });
+        res.cookie("access_token", "", clearCookieOptions);
+        res.cookie("refresh_token", "", clearCookieOptions);
 
         res.status(200).json({
             success: true,
             message: "Logged out successfully",
         });
-
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 400));
     }
@@ -249,33 +241,33 @@ export const logoutUser = CatchAsyncError(async (req: Request, res: Response, ne
 export const refreshToken = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const refresh_token = req.cookies.refresh_token as string;
-        
+
         console.log('RefreshToken controller - cookie present:', !!refresh_token);
-        
+
         if (!refresh_token) {
             console.log('No refresh token found in cookies');
             return next(new ErrorHandler("Please login to access this resource", 401));
         }
 
         const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
-        
+
         if (!decoded) {
             console.log('Invalid refresh token');
             return next(new ErrorHandler("Invalid refresh token", 400));
         }
-        
+
         const user = await User.findById(decoded.id);
         if (!user) {
             console.log('User not found for ID:', decoded.id);
             return next(new ErrorHandler("User not found", 404));
         }
 
-        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { 
-            expiresIn: "15m" 
+        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, {
+            expiresIn: "15m"
         });
-        
-        const newRefreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { 
-            expiresIn: "3d" 
+
+        const newRefreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, {
+            expiresIn: "3d"
         });
 
         // Update cookies
@@ -311,7 +303,7 @@ export const refreshToken = CatchAsyncError(async (req: Request, res: Response, 
 //         if (!decoded) {
 //             return next(new ErrorHandler(message, 400));
 //         }
-        
+
 //         // FIX: Use decoded.id instead of User._id
 //         const user = await User.findById(decoded.id);
 //         if (!user) {
@@ -335,33 +327,33 @@ export const refreshToken = CatchAsyncError(async (req: Request, res: Response, 
 export const updateAccessToken = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const refresh_token = req.cookies.refresh_token as string;
-        
+
         console.log('UpdateAccessToken middleware - cookie present:', !!refresh_token);
-        
+
         if (!refresh_token) {
             console.log('No refresh token found in cookies');
             return next(new ErrorHandler("Please login to access this resource", 401));
         }
 
         const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN as string) as JwtPayload;
-        
+
         if (!decoded) {
             console.log('Invalid refresh token');
             return next(new ErrorHandler("Invalid refresh token", 400));
         }
-        
+
         const user = await User.findById(decoded.id);
         if (!user) {
             console.log('User not found for ID:', decoded.id);
             return next(new ErrorHandler("User not found", 404));
         }
 
-        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, { 
-            expiresIn: "15m" 
+        const accessToken = jwt.sign({ id: user._id }, process.env.ACCESS_TOKEN as string, {
+            expiresIn: "15m"
         });
-        
-        const newRefreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, { 
-            expiresIn: "3d" 
+
+        const newRefreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN as string, {
+            expiresIn: "3d"
         });
 
         // Update cookies
@@ -529,51 +521,51 @@ export const getAllUsers = CatchAsyncError(async (req: Request, res: Response, n
 // update user role -- only for admin
 
 export const updateUserRole = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { email, role } = req.body
-    
-    if (!email) {
-      return next(new ErrorHandler("User email is required", 400))
-    }
+    try {
+        const { email, role } = req.body
 
-    if (!role) {
-      return next(new ErrorHandler("Role is required", 400))
-    }
+        if (!email) {
+            return next(new ErrorHandler("User email is required", 400))
+        }
 
-    // Prevent modifying yourself
-    if (email === req.user.email) {
-      return next(new ErrorHandler("You can't change your own role", 400))
-    }
-    
-    // Validate role
-    if (!['admin', 'user'].includes(role)) {
-      return next(new ErrorHandler("Invalid role", 400))
-    }
-    
-    // Update user by email
-    const user = await User.findOneAndUpdate(
-      { email },
-      { role },
-      { new: true, runValidators: true }
-    )
-    
-    if (!user) {
-      return next(new ErrorHandler("User not found", 404))
-    }
+        if (!role) {
+            return next(new ErrorHandler("Role is required", 400))
+        }
 
-    res.status(200).json({
-      success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified
-      }
-    })
-  } catch (error: any) {
-    next(new ErrorHandler(error.message, 500))
-  }
+        // Prevent modifying yourself
+        if (email === req.user.email) {
+            return next(new ErrorHandler("You can't change your own role", 400))
+        }
+
+        // Validate role
+        if (!['admin', 'user'].includes(role)) {
+            return next(new ErrorHandler("Invalid role", 400))
+        }
+
+        // Update user by email
+        const user = await User.findOneAndUpdate(
+            { email },
+            { role },
+            { new: true, runValidators: true }
+        )
+
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404))
+        }
+
+        res.status(200).json({
+            success: true,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isVerified: user.isVerified
+            }
+        })
+    } catch (error: any) {
+        next(new ErrorHandler(error.message, 500))
+    }
 })
 //Delete uer --only for admin
 export const deleteUser = CatchAsyncError(async (req: Request, res: Response, next: NextFunction) => {

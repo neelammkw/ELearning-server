@@ -1,21 +1,35 @@
+// server.ts or index.ts
 import { app } from "./app";
-// import { initSocketServer } from "./socketServer";
-import http from 'http';
-require("dotenv").config();
-import connectDB from "./utils/db";
-import { v2 as cloudinary } from "cloudinary";
-// const server = http.createServer(app);
+import  connectDB  from "./utils/db";
+import dotenv from "dotenv";
 
-//cloudinary config
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_API_SECRET_KEY,
+dotenv.config();
 
-})
-// initSocketServer(server);
+// Connect to database
+connectDB();
 
-app.listen(process.env.PORT, () => {
-    console.log(`Server is connected with port ${process.env.PORT}`);
-    connectDB();
-})
+// Start server
+const PORT = process.env.PORT || 8000;
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
+  console.log(`🍪 Cookie sameSite: ${process.env.NODE_ENV === 'production' ? 'none' : 'lax'}`);
+});
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (err: Error) => {
+  console.log(`Error: ${err.message}`);
+  console.log("Shutting down server due to unhandled promise rejection");
+  
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (err: Error) => {
+  console.log(`Error: ${err.message}`);
+  console.log("Shutting down server due to uncaught exception");
+  process.exit(1);
+});
